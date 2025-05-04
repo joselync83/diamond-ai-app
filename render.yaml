@@ -3,7 +3,7 @@ services:
     name: diamond-ai-app
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --workers=1
     envVars:
       - key: OPENAI_API_KEY
         sync: false

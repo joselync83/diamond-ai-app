@@ -1,20 +1,23 @@
 from flask import Flask, render_template, request
 from transformers import pipeline
 from openai import OpenAI
-
-# Configurar cliente OpenAI
 import os
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Inicializar la app
 app = Flask(__name__)
 
-# Crear los pipelines de traducción
-translator_en_to_es = pipeline("translation", model="Helsinki-NLP/opus-mt-en-es")
-translator_es_to_en = pipeline("translation", model="Helsinki-NLP/opus-mt-es-en")
-translator_en_to_fr = pipeline("translation", model="Helsinki-NLP/opus-mt-en-fr")
-translator_fr_to_en = pipeline("translation", model="Helsinki-NLP/opus-mt-fr-en")
-translator_es_to_fr = pipeline("translation", model="Helsinki-NLP/opus-mt-es-fr")
-translator_fr_to_es = pipeline("translation", model="Helsinki-NLP/opus-mt-fr-es")
+# Configurar cliente OpenAI (usa variable de entorno en producción)
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# Cargar los modelos una sola vez (memoria eficiente)
+translator_models = {
+    ("en", "es"): pipeline("translation", model="Helsinki-NLP/opus-mt-en-es"),
+    ("es", "en"): pipeline("translation", model="Helsinki-NLP/opus-mt-es-en"),
+    ("en", "fr"): pipeline("translation", model="Helsinki-NLP/opus-mt-en-fr"),
+    ("fr", "en"): pipeline("translation", model="Helsinki-NLP/opus-mt-fr-en"),
+    ("es", "fr"): pipeline("translation", model="Helsinki-NLP/opus-mt-es-fr"),
+    ("fr", "es"): pipeline("translation", model="Helsinki-NLP/opus-mt-fr-es"),
+}
 
 @app.route('/')
 def index():
@@ -26,26 +29,15 @@ def translate():
     source_lang = request.form['source_lang']
     target_lang = request.form['target_lang']
 
-    # Selección del traductor
-    if source_lang == 'en' and target_lang == 'es':
-        translator = translator_en_to_es
-    elif source_lang == 'es' and target_lang == 'en':
-        translator = translator_es_to_en
-    elif source_lang == 'en' and target_lang == 'fr':
-        translator = translator_en_to_fr
-    elif source_lang == 'fr' and target_lang == 'en':
-        translator = translator_fr_to_en
-    elif source_lang == 'es' and target_lang == 'fr':
-        translator = translator_es_to_fr
-    elif source_lang == 'fr' and target_lang == 'es':
-        translator = translator_fr_to_es
-    else:
+    # Verificar si el par de idiomas es válido
+    translator = translator_models.get((source_lang, target_lang))
+    if not translator:
         return "Idioma no soportado", 400
 
-    # Primero mejorar el texto original
+    # Paso 1: Mejorar texto con OpenAI
     improved_text = refine_text_with_openai(text, source_lang)
 
-    # Luego traducir el texto mejorado
+    # Paso 2: Traducir texto mejorado
     result = translator(improved_text)
     translated_text = result[0]['translation_text']
 
@@ -62,11 +54,13 @@ def refine_text_with_openai(text, lang):
         model="gpt-4",
         messages=[
             {"role": "system", "content": f"Eres un editor profesional que mejora textos en {lang}."},
-            {"role": "user", "content": f"Mejora este texto en {lang}:\\n\\n{text}"}
+            {"role": "user", "content": f"Mejora este texto en {lang}:\n\n{text}"}
         ],
         max_tokens=500
     )
     return response.choices[0].message.content.strip()
 
+# Puerto compatible con Render
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
