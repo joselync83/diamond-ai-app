@@ -6,10 +6,10 @@ import os
 # Inicializar la app
 app = Flask(__name__)
 
-# Configurar cliente OpenAI (usa variable de entorno en producción)
+# Configurar cliente OpenAI usando variable de entorno
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# Cargar los modelos una sola vez (memoria eficiente)
+# Cargar modelos de traducción
 translator_models = {
     ("en", "es"): pipeline("translation", model="Helsinki-NLP/opus-mt-en-es"),
     ("es", "en"): pipeline("translation", model="Helsinki-NLP/opus-mt-es-en"),
@@ -29,15 +29,15 @@ def translate():
     source_lang = request.form['source_lang']
     target_lang = request.form['target_lang']
 
-    # Verificar si el par de idiomas es válido
+    # Obtener el traductor correcto
     translator = translator_models.get((source_lang, target_lang))
     if not translator:
         return "Idioma no soportado", 400
 
-    # Paso 1: Mejorar texto con OpenAI
+    # Mejorar texto
     improved_text = refine_text_with_openai(text, source_lang)
 
-    # Paso 2: Traducir texto mejorado
+    # Traducir texto mejorado
     result = translator(improved_text)
     translated_text = result[0]['translation_text']
 
@@ -60,7 +60,7 @@ def refine_text_with_openai(text, lang):
     )
     return response.choices[0].message.content.strip()
 
-# Puerto compatible con Render
+# Este bloque es requerido para Cloud Run / Render
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 8080))  # Usa 8080 por defecto
+    app.run(host='0.0.0.0', port=port)
