@@ -10,14 +10,14 @@ WORKDIR /app
 
 # Instalar dependencias del sistema necesarias
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git build-essential cmake libprotobuf-dev protobuf-compiler libsentencepiece-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos
+# Copiar e instalar dependencias de Python
 COPY requirements.txt .
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar el resto del código
 COPY . .
