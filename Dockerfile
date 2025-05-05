@@ -1,27 +1,29 @@
-# Usa una imagen ligera de Python
 FROM python:3.11-slim
 
-# Evita conflictos de permisos con pip
+# Evitar prompts y mantener liviano
 ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_ROOT_USER_ACTION=ignore
+    PIP_NO_CACHE_DIR=yes \
+    DEBIAN_FRONTEND=noninteractive
 
-# Establece el directorio de trabajo
+# Crear y usar el directorio de trabajo
 WORKDIR /app
 
-# Copia e instala dependencias
-COPY requirements.txt .
-RUN apt-get update && apt-get install -y git && \
-    pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Instalar dependencias del sistema necesarias
+RUN apt-get update && \
+    apt-get install -y git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copia el resto de la app
+# Copiar archivos
+COPY requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+
+# Copiar el resto del código
 COPY . .
 
-# Expone el puerto 8080 para Cloud Run
+# Puerto usado por Cloud Run
 EXPOSE 8080
 
-# Comando de arranque para Gunicorn
+# Comando para arrancar el servidor
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]

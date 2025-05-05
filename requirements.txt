@@ -1,11 +1,5 @@
-flask==3.1.0
-flask-cors==5.0.1
-transformers==4.38.2
-torch==2.2.2
+Flask==2.3.3
+transformers==4.39.3
+torch==2.1.2
 openai==1.14.3
-sentencepiece==0.2.0
-sacremoses==0.1.1
-requests==2.31.0
-numpy==1.24.4
-markupsafe==2.1.5
 gunicorn==21.2.0

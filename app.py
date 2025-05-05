@@ -1,13 +1,13 @@
 from flask import Flask, render_template, request
 from transformers import pipeline
-from openai import OpenAI
+import openai
 import os
 
 # Inicializar la app
 app = Flask(__name__)
 
-# Configurar cliente OpenAI usando variable de entorno
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Configurar API key de OpenAI desde variable de entorno
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 # Cargar modelos de traducción
 translator_models = {
@@ -50,7 +50,7 @@ def translate():
     )
 
 def refine_text_with_openai(text, lang):
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": f"Eres un editor profesional que mejora textos en {lang}."},
@@ -58,7 +58,7 @@ def refine_text_with_openai(text, lang):
         ],
         max_tokens=500
     )
-    return response.choices[0].message.content.strip()
+    return response.choices[0].message['content'].strip()
 
 # Este bloque es requerido para Cloud Run / Render
 if __name__ == '__main__':
